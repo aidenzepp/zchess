@@ -82,6 +82,5 @@ bitboard_t rotr_by_45dg_bitboard(bitboard_t bitboard);
 bitboard_t rotl_by_90dg_bitboard(bitboard_t bitboard);
 bitboard_t rotr_by_90dg_bitboard(bitboard_t bitboard);
 bitboard_t rot_by_180dg_bitboard(bitboard_t bitboard);
-bitboard_t general_turn_bitboard(bitboard_t bitboard, uint8_t deg, bool ccw);
 bitboard_t obtain_color_bitboard(struct board board, enum color color);
 bitboard_t obtain_piece_bitboard(struct board board, enum piece piece);
