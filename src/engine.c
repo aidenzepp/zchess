@@ -1,287 +1,473 @@
 #include "engine.h"
 
-#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 
-#define COLOR_BIT_MASK  0x18
-#define PIECE_BIT_MASK  0x07
-#define PIECE_BIT_WIDTH 3
+#define BLOCK_INDEX(file, rank, tier) (tier * 64 + rank * 8 + file)
 
-#define BITBOARD_NIL        ((bitboard_t)0)
-#define BITBOARD_ALL        ((bitboard_t)0xFFFFFFFFFFFFFFFF)
-#define BITBOARD_NOT_A_FILE ((bitboard_t)0xFEFEFEFEFEFEFEFE)
-#define BITBOARD_NOT_H_FILE ((bitboard_t)0x7f7f7f7f7f7f7f7f)
+static const struct token DEFAULT_BOARD_TOKENS[BOARD_TOKENS_LENGTH] = {
+        [BLOCK_INDEX(FILE_A, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [BLOCK_INDEX(FILE_B, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_C, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_D, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_QUEEN,  false},
+        [BLOCK_INDEX(FILE_E, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KING,   false},
+        [BLOCK_INDEX(FILE_F, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_G, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_H, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [BLOCK_INDEX(FILE_A, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_B, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_C, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_D, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_E, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_F, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_G, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_H, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_A, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_B, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_C, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_D, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_E, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_F, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_G, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_H, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_A, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [BLOCK_INDEX(FILE_B, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_C, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_D, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_QUEEN,  false},
+        [BLOCK_INDEX(FILE_E, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_KING,   false},
+        [BLOCK_INDEX(FILE_F, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_G, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_H, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_ROOK,   false},
+};
 
-static bitboard_t nort_one(bitboard_t bitboard)
+static const struct token DEFAULT_ARENA_TOKENS[ARENA_TOKENS_LENGTH] = {
+        [BLOCK_INDEX(FILE_A, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [BLOCK_INDEX(FILE_B, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_C, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_D, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_QUEEN,  false},
+        [BLOCK_INDEX(FILE_E, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KING,   false},
+        [BLOCK_INDEX(FILE_F, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_G, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_H, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [BLOCK_INDEX(FILE_A, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_B, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_C, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_D, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_E, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_F, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_G, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_H, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_A, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_B, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_C, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_D, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_E, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_F, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_G, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_H, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_A, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_B, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_C, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_D, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_E, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_F, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_G, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_H, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_A, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [BLOCK_INDEX(FILE_B, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_E, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_F, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_G, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_H, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BLOCK_INDEX(FILE_A, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [BLOCK_INDEX(FILE_B, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_C, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_D, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_QUEEN,  false},
+        [BLOCK_INDEX(FILE_E, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KING,   false},
+        [BLOCK_INDEX(FILE_F, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [BLOCK_INDEX(FILE_G, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [BLOCK_INDEX(FILE_H, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_ROOK,   false},
+};
+
+static struct moves obtain_board_moves_piece_king(struct board board, struct token token, struct block origin)
 {
-        return bitboard << 8;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KING)
+                return moves;
+
+        // TODO: In check?
+
+        // Normal moves.
+        for (size_t dr = -1; dr <= 1; dr++)
+        for (size_t df = -1; df <= 1; df++) {
+                if (dr == 0 && df == 0)
+                        continue;
+
+                struct block block = create_block(origin.file + df, origin.rank + dr, origin.tier);
+                if (!assert_valid_block(block))
+                        continue;
+
+                if (obtain_board_token(board, block).color != token.color)
+                        continue;
+
+                moves.blocks[moves.length++] = block;
+        }
+
+        if (token.moved)
+                return moves;
+
+        // Castling.
+        struct token kside_token = obtain_board_token(board, create_block(FILE_A, origin.rank, origin.tier));
+        if (!token.moved && kside_token.piece == PIECE_ROOK && kside_token.color == token.color && !kside_token.moved)
+                moves.blocks[moves.length++] = create_block(FILE_B, origin.rank, origin.tier);
+
+        struct token qside_token = obtain_board_token(board, create_block(FILE_H, origin.rank, origin.tier));
+        if (!token.moved && qside_token.piece == PIECE_ROOK && qside_token.color == token.color && !qside_token.moved)
+                moves.blocks[moves.length++] = create_block(FILE_G, origin.rank, origin.tier);
+
+        return moves;       
 }
 
-static bitboard_t sout_one(bitboard_t bitboard)
+static struct moves obtain_board_moves_piece_queen(struct board board, struct token token, struct block origin)
 {
-        return bitboard >> 8;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_QUEEN)
+                return moves;
+
+        return moves;
 }
 
-static bitboard_t west_one(bitboard_t bitboard)
+static struct moves obtain_board_moves_piece_rook(struct board board, struct token token, struct block origin)
 {
-        return (bitboard & BITBOARD_NOT_A_FILE) >> 1;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_ROOK)
+                return moves;
+
+        const size_t dr[4] = {-1,  0,  1,  0};
+        const size_t df[4] = { 0,  1,  0, -1};
+        for (size_t d = 0; d < 4; d++)
+        for (size_t i = 1; i < BLOCK_COLUMN_LENGTH; i++) {
+                struct block block = create_block(origin.file + df[d] * i, origin.rank + dr[d] * i, origin.tier);
+                if (!assert_valid_block(block))
+                        break;
+
+                struct token other = obtain_board_token(board, block);
+                if (other.color != token.color)
+                        moves.blocks[moves.length++] = block;
+                if (other.piece != PIECE_NONE)
+                        break;
+        }
+
+        // TODO: Castling. (Is that even a rook move, or only a king move?)
+
+        return moves;
 }
 
-static bitboard_t nowe_one(bitboard_t bitboard)
+static struct moves obtain_board_moves_piece_bishop(struct board board, struct token token, struct block origin)
 {
-        return (bitboard & BITBOARD_NOT_A_FILE) << 7;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_BISHOP)
+                return moves;
+
+        const size_t dr[4] = {-1, -1,  1,  1};
+        const size_t df[4] = {-1,  1,  1, -1};
+        for (size_t d = 0; d < 4; d++)
+        for (size_t i = 1; i < BLOCK_COLUMN_LENGTH; i++) {
+                struct block block = create_block(origin.file + df[d] * i, origin.rank + dr[d] * i, origin.tier);
+                if (!assert_valid_block(block))
+                        break;
+
+                struct token other = obtain_board_token(board, block);
+                if (other.color != token.color)
+                        moves.blocks[moves.length++] = block;
+                if (other.piece != PIECE_NONE)
+                        break;
+        }
+
+        return moves;
 }
 
-static bitboard_t sowe_one(bitboard_t bitboard)
+static struct moves obtain_board_moves_piece_knight(struct board board, struct token token, struct block origin)
 {
-        return (bitbaord & BITBOARD_NOT_A_FILE) >> 9;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KNIGHT)
+                return moves;
+
+        const size_t dr[8] = {-2, -1,  1,  2,  2,  1, -1, -2};
+        const size_t df[8] = { 1,  2,  2,  1, -1, -2, -2, -1};
+        for (size_t d = 0; d < 8; d++) {
+                struct block block = create_block(origin.file + df[d], origin.rank + dr[d], origin.tier);
+                if (!assert_valid_block(block))
+                        continue;
+
+                struct token other = obtain_board_token(board, block);
+                if (other.color != token.color)
+                        moves.blocks[moves.length++] = block;
+        }
+
+        return moves;
 }
 
-static bitboard_t east_one(bitboard_t bitboard)
+static struct moves obtain_board_moves_piece_pawn(struct board board, struct token token, struct block origin)
 {
-        return (bitboard & BITBOARD_NOT_H_FILE) << 1;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_PAWN)
+                return moves;
+
+        struct token other = create_token(COLOR_NONE, PIECE_NONE);
+        struct block block = create_block(origin.file, origin.rank + 1, origin.tier);
+        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).piece == PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        block = create_block(origin.file - 1, origin.rank + 1, origin.tier);
+        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).color != token.color && other.piece != PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        block = create_block(origin.file + 1, origin.rank + 1, origin.tier);
+        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).color != token.color && other.piece != PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        // TODO: En passant.
+
+        // TODO: Promotion.
+
+        // Double.
+        block = create_block(origin.file, origin.rank + 2, origin.tier);
+        if (!token.moved && assert_valid_block(block) && (other = obtain_board_token(board, block)).piece == PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        return moves;
 }
 
-static bitboard_t noea_one(bitboard_t bitboard)
+static struct moves obtain_arena_moves_piece_king(struct arena arena, struct token token, struct block origin)
 {
-        return (bitboard & BITBOARD_NOT_H_FILE) << 9;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KING)
+                return moves;
+
+        return moves;
 }
 
-static bitboard_t soea_one(bitboard_t bitboard)
+static struct moves obtain_arena_moves_piece_queen(struct arena arena, struct token token, struct block origin)
 {
-        return (bitboard & BITBOARD_NOT_H_FILE) >> 7;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_QUEEN)
+                return moves;
+
+        return moves;
 }
 
-static bitboard_t rotl(bitboard_t bitboard, int shift)
+static struct moves obtain_arena_moves_piece_rook(struct arena arena, struct token token, struct block origin)
 {
-        return (bitboard << shift) | (bitboard >> (64 - shift));
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_ROOK)
+                return moves;
+
+        return moves;
 }
 
-static bitboard_t rotr(bitboard_t bitboard, int shift)
+static struct moves obtain_arena_moves_piece_bishop(struct arena arena, struct token token, struct block origin)
 {
-        return (bitboard >> shift) | (bitboard << (64 - shift));
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_BISHOP)
+                return moves;
+
+        return moves;
 }
 
-static bitboard_t general_shift_bitboard(bitboard_t bitboard, int shift)
+static struct moves obtain_arena_moves_piece_knight(struct arena arena, struct token token, struct block origin)
 {
-        return (s > 0) ? (bitboard << shift) : (bitboard >> -shift);
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KNIGHT)
+                return moves;
+
+        return moves;
+}
+
+static struct moves obtain_arena_moves_piece_pawn(struct arena arena, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_PAWN)
+                return moves;
+
+        return moves;
+}
+
+bool assert_valid_color(enum color color)
+{
+        return COLOR_NONE <= color && color <= COLOR_BLACK;
+}
+
+bool assert_valid_piece(enum piece piece)
+{
+        return PIECE_NONE <= piece && piece <= PIECE_PAWN;
+}
+
+bool assert_valid_token(struct token token)
+{
+        return assert_valid_color(token.color) && assert_valid_piece(token.piece);
+}
+
+bool assert_valid_file(enum file file)
+{
+        return FILE_A <= file && file <= FILE_H;
+}
+
+bool assert_valid_rank(enum rank rank)
+{
+        return RANK_1 <= rank && rank <= RANK_8;
+}
+
+bool assert_valid_tier(enum tier tier)
+{
+        return TIER_S <= tier && tier <= TIER_Z;
+}
+
+bool assert_valid_block(struct block block)
+{
+        return assert_valid_file(block.file) && assert_valid_rank(block.rank) && assert_valid_tier(block.tier);
+}
+
+bool assert_valid_moves(struct moves moves)
+{
+        return 0 <= moves.length && moves.length <= MOVES_BLOCKS_LENGTH;
 }
 
 enum color invert_color(enum color color)
 {
-        return (color == COLOR_WHITE) ? COLOR_BLACK : COLOR_WHITE;
+        if (color == COLOR_NONE)
+                return COLOR_NONE;
+
+        return color == COLOR_WHITE ? COLOR_BLACK : COLOR_WHITE;
 }
 
-bool decode_color(uint8_t bits, enum color *color)
+struct token create_token(enum color color, enum piece piece)
 {
-        uint8_t color_bits = (bits & COLOR_BIT_MASK) >> PIECE_BIT_WIDTH;
-        if (color_bits == 0)
-                return false;
-
-        *color = (enum color)color_bits;
-        return true;
+        return (struct token){.color = color, .piece = piece, .moved = false};
 }
 
-bool decode_piece(uint8_t bits, enum piece *piece)
+struct block create_block(enum file file, enum rank rank, enum tier tier)
 {
-        uint8_t piece_bits = (bits & PIECE_BIT_MASK);
-        if (piece_bits < 1 || piece_bits > 6)
-                return false;
-
-        *piece = (enum piece)piece_bits;
-        return true;
+        return (struct block){.file = file, .rank = rank, .tier = tier};
 }
 
-uint8_t encode_color(uint8_t bits, enum color color)
+struct board create_board(void)
 {
-        return bits | ((uint8_t)color << PIECE_BIT_WIDTH);
+        struct board board;
+        memcpy(board.tokens, DEFAULT_BOARD_TOKENS, BOARD_TOKENS_LENGTH * sizeof(struct token));
+
+        return board;
 }
 
-uint8_t encode_piece(uint8_t bits, enum piece piece)
+struct arena create_arena(void)
 {
-        return bits | (uint8_t)piece;
+        struct arena arena;
+        memcpy(arena.tokens, DEFAULT_ARENA_TOKENS, ARENA_TOKENS_LENGTH * sizeof(struct token));
+
+        return arena;
 }
 
-int obtain_piece_popcount(bitboard_t bitboard)
+struct moves create_moves(void)
 {
-        const bitboard_t K1 = (bitboard_t)0x5555555555555555;
-        const bitboard_t K2 = (bitboard_t)0x3333333333333333;
-        const bitboard_t K4 = (bitboard_t)0x0f0f0f0f0f0f0f0f;
-        const bitboard_t KF = (bitboard_t)0x0101010101010101;
-
-        bitboard = (bitboard - ((bitboard >> 1) & K1);
-        bitboard = (bitboard & k2) + ((bitboard >> 2) & K2);
-        bitboard = (bitboard + (bitboard >> 4)) & K4;
-        bitboard = (bitboard * KF) >> 56;
-
-        return (int)bitboard;
+        return (struct moves){.blocks = {0}, .length = 0};
 }
 
-int forward_scan_bitboard(bitboard_t bitboard)
+size_t obtain_block_index(struct block block)
 {
-        if (bitboard == 0)
-                return -1;
-
-        return obtain_piece_popcount((bitboard & -bitboard) - 1);
+        return BLOCK_INDEX(block.file, block.rank, block.tier);
 }
 
-int reverse_scan_bitboard(bitboard_t bitboard)
+enum color obtain_block_color(struct block block)
 {
-        int ret = 0;
-        if (bitboard > 0xFFFFFFFF) {
-                bitboard >>= 32;
-                ret = 32;
-        }
-        if (bitboard > 0xFFFF) {
-                bitboard >>= 16;
-                ret += 16;
-        }
-        if (bitboard > 0xFF) {
-                bitboard >>= 8;
-                ret += 8;
-        }
+        uint64_t black_blocks = 0xAA55AA55AA55AA55;
+        if (block.tier % 2 != 0)
+                black_blocks = ~black_blocks;
 
-        // TODO: Implement ms1b_table (https://www.talkchess.com/forum/viewtopic.php?t=38777).
-        return ret + ms1b_table[bitboard];
+        return ((black_blocks >> BLOCK_INDEX(block.file, block.rank, TIER_S)) & 1) == 0 ? COLOR_WHITE : COLOR_BLACK;
 }
 
-int general_scan_bitboard(bitboard_t bitboard, bool reverse)
+struct token obtain_board_token(struct board board, struct block block)
 {
-        if (bitboard == 0)
-                return -1;
-
-        bitboard_t rmask = -(bitboard_t)reverse;
-        bitboard &= -bitboard | rmask;
-
-        return reverse_scan_bitboard(bitboard);
+        return board.tokens[obtain_block_index(block)];
 }
 
-/*
- * For some stupid reason (or reason I don't understand, who knows), the Chess Wiki
- * calls "flip_across_vert_line" and "flip_across_horz_line" as "flipVertical" and
- * "mirrorHorizontal", respectively. Unsure why they use "flip" and "mirror" instead
- * of just "flip". Whatever.
- */
-
-bitboard_t flip_across_vert_line(bitboard_t bitboard)
+struct token obtain_arena_token(struct arena arena, struct block block)
 {
-        const bitboard_t K1 = (bitboard_t)0x5555555555555555;
-        const bitboard_t K2 = (bitboard_t)0x3333333333333333;
-        const bitboard_t K4 = (bitboard_t)0x0f0f0f0f0f0f0f0f;
-
-        bitboard = ((bitboard >> 1) & K1) | ((bitboard & K1) << 1);
-        bitboard = ((bitboard >> 2) & K2) | ((bitboard & K2) << 2);
-        bitboard = ((bitboard >> 4) & K4) | ((bitboard & K4) << 4);
-
-        return bitboard;
+        return arena.tokens[obtain_block_index(block)];
 }
 
-bitboard_t flip_across_horz_line(bitboard_t bitboard)
+struct moves obtain_board_moves(struct board board, struct token token, struct block origin)
 {
-        const bitboard_t K1 = (bitboard_t)0x00FF00FF00FF00FF;
-        const bitboard_t K2 = (bitboard_t)0x0000FFFF0000FFFF;
-
-        bitboard = ((bitboard >>  8) & K1) | ((bitboard & K1) << 8);
-        bitboard = ((bitboard >> 16) & K2) | ((bitboard & K2) << 16);
-        bitboard = (bitboard >> 32) | (bitboard << 32);
-
-        return bitboard;
-}
-
-// A1 - H8
-bitboard_t flip_across_norm_diag(bitboard_t bitboard)
-{
-        const bitboard_t K1 = (bitboard_t)0x5500550055005500;
-        const bitboard_t K2 = (bitboard_t)0x3333000033330000;
-        const bitboard_t K4 = (bitboard_t)0x0f0f0f0f00000000;
-
-        bitboard_t tmp;
-        tmp = K4 & (bitboard ^ (bitboard << 28));
-        bitboard ^= tmp ^ (tmp >> 28);
-        tmp = K2 & (bitboard ^ (bitboard << 14));
-        bitboard ^= tmp ^ (tmp >> 14);
-        tmp = K1 & (bitboard ^ (bitboard <<  7));
-        bitboard ^= tmp ^ (tmp >>  7);
-
-        return bitboard;
-}
-
-// A8 - H1
-bitboard_t flip_across_anti_diag(bitboard_t bitboard)
-{
-        const bitboard_t K1 = (bitboard_t)0xaa00aa00aa00aa00;
-        const bitboard_t K2 = (bitboard_t)0xcccc0000cccc0000;
-        const bitboard_t K4 = (bitboard_t)0xf0f0f0f00f0f0f0f;
-
-        bitboard_t tmp;
-        tmp = bitboard ^ (bitboard << 36);
-        bitboard ^= K4 & (tmp ^ (bitboard >> 36));
-        tmp = K2 & (bitboard ^ (bitboard << 18));
-        bitboard ^= tmp ^ (tmp >> 18);
-        tmp = K1 & (bitboard ^ (bitboard <<  9));
-        bitboard ^= tmp ^ (tmp >>  9);
-
-        return ret;
-}
-
-bitboard_t general_flip_bitboard(bitboard_t bitboard, bool horz, bool vert)
-{
-        for (uint32_t i = 3 * (1 - vert); i < 3 * (1 + horz); i++) {
-                int s = 1 << i;
-                uint64_t f = (uint64_t)1 << s;
-                uint64_t k = (uint64_t)(-1) / (f + 1);
-                bitboard = ((bitboard >> s) & k) + (f * (bitboard & k));
+        struct moves moves;
+        switch (token.piece) {
+        case PIECE_KING:
+                moves = obtain_board_moves_piece_king(board, token, origin);
+                break;
+        case PIECE_QUEEN:
+                moves = obtain_board_moves_piece_queen(board, token, origin);
+                break;
+        case PIECE_ROOK:
+                moves = obtain_board_moves_piece_rook(board, token, origin);
+                break;
+        case PIECE_BISHOP:
+                moves = obtain_board_moves_piece_bishop(board, token, origin);
+                break;
+        case PIECE_KNIGHT:
+                moves = obtain_board_moves_piece_knight(board, token, origin);
+                break;
+        case PIECE_PAWN:
+                moves = obtain_board_moves_piece_pawn(board, token, origin);
+                break;
+        default:
+                moves = create_moves();
+                break;
         }
 
-        return bitboard;
+        return moves;
 }
 
-bitboard_t rotl_by_45dg_bitboard(bitboard_t bitboard)
+struct moves obtain_arena_moves(struct arena arena, struct token token, struct block origin)
 {
-        const bitboard_t K1 = (bitboard_t)0x5555555555555555;
-        const bitboard_t K2 = (bitboard_t)0x3333333333333333;
-        const bitboard_t K4 = (bitboard_t)0x0f0f0f0f0f0f0f0f;
+        struct moves moves;
+        switch (token.piece) {
+        case PIECE_KING:
+                moves = obtain_arena_moves_piece_king(arena, token, origin);
+                break;
+        case PIECE_QUEEN:
+                moves = obtain_arena_moves_piece_queen(arena, token, origin);
+                break;
+        case PIECE_ROOK:
+                moves = obtain_arena_moves_piece_rook(arena, token, origin);
+                break;
+        case PIECE_BISHOP:
+                moves = obtain_arena_moves_piece_bishop(arena, token, origin);
+                break;
+        case PIECE_KNIGHT:
+                moves = obtain_arena_moves_piece_knight(arena, token, origin);
+                break;
+        case PIECE_PAWN:
+                moves = obtain_arena_moves_piece_pawn(arena, token, origin);
+                break;
+        default:
+                moves = create_moves();
+                break;
+        }
 
-        bitboard ^= K1 & (bitboard ^ rotr(bitboard, 8));
-        bitboard ^= K2 & (bitboard ^ rotr(bitboard, 16));
-        bitboard ^= K4 & (bitboard ^ rotr(bitboard, 32));
-
-        return bitboard;
+        return moves;
 }
 
-bitboard_t rotr_by_45dg_bitboard(bitboard_t bitboard)
+struct token update_board_token(struct board *board, struct block block, struct token token)
 {
-        const bitboard_t K1 = (bitboard_t)0xAAAAAAAAAAAAAAAA;
-        const bitboard_t K2 = (bitboard_t)0xCCCCCCCCCCCCCCCC;
-        const bitboard_t K4 = (bitboard_t)0xF0F0F0F0F0F0F0F0;
+        struct token prev = board->tokens[obtain_block_index(block)];
+        board->tokens[obtain_block_index(block)] = token;
 
-        bitboard ^= K1 & (bitboard ^ rotr(bitboard, 8));
-        bitboard ^= K2 & (bitboard ^ rotr(bitboard, 16));
-        bitboard ^= K4 & (bitboard ^ rotr(bitboard, 32));
-
-        return bitboard;
+        return prev;
 }
 
-bitboard_t rotl_by_90dg_bitboard(bitboard_t bitboard)
+struct token update_arena_token(struct arena *arena, struct block block, struct token token)
 {
-        return flip_across_horz_line(flip_across_anti_diag(bitboard));
-}
+        struct token prev = arena->tokens[obtain_block_index(block)];
+        arena->tokens[obtain_block_index(block)] = token;
 
-bitboard_t rotr_by_90dg_bitbaord(bitboard_t bitboard)
-{
-        return flip_across_horz_line(flip_across_norm_diag(bitboard));
-}
-
-bitboard_t rot_by_180dg_bitboard(bitboard_t bitboard)
-{
-        return flip_across_vert_line(flip_across_horz_line(bitboard));
-}
-
-bitboard_t obtain_color_bitboard(struct board board, enum color color)
-{
-        return board.pieces[(size_t)color - 1];
-}
-
-bitboard_t obtain_piece_bitboard(struct board board, enum piece piece)
-{
-        return board.pieces[(size_t)piece + 1];
+        return prev;
 }

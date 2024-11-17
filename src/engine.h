@@ -1,15 +1,22 @@
 #pragma once
 
-#include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
+#define BLOCK_COLUMN_LENGTH 8
+#define BOARD_TOKENS_LENGTH 64
+#define ARENA_TOKENS_LENGTH 512
+#define MOVES_BLOCKS_LENGTH 128
+
 enum color {
-        COLOR_WHITE = 1,
+        COLOR_NONE,
+        COLOR_WHITE,
         COLOR_BLACK,
 };
 
 enum piece {
-        PIECE_KING = 1,
+        PIECE_NONE,
+        PIECE_KING,
         PIECE_QUEEN,
         PIECE_ROOK,
         PIECE_BISHOP,
@@ -17,15 +24,10 @@ enum piece {
         PIECE_PAWN,
 };
 
-enum rank {
-        RANK_1,
-        RANK_2,
-        RANK_3,
-        RANK_4,
-        RANK_5,
-        RANK_6,
-        RANK_7,
-        RANK_8,
+struct token {
+        enum color color;
+        enum piece piece;
+        bool       moved;
 };
 
 enum file {
@@ -37,6 +39,17 @@ enum file {
         FILE_F,
         FILE_G,
         FILE_H,
+};
+
+enum rank {
+        RANK_1,
+        RANK_2,
+        RANK_3,
+        RANK_4,
+        RANK_5,
+        RANK_6,
+        RANK_7,
+        RANK_8,
 };
 
 enum tier {
@@ -51,36 +64,49 @@ enum tier {
 };
 
 struct block {
-        enum rank rank;
         enum file file;
+        enum rank rank;
         enum tier tier;
 };
 
-typedef uint64_t bitboard_t;
-
 struct board {
-        bitboard_t pieces[8];
+        struct token tokens[BOARD_TOKENS_LENGTH];
 };
 
-enum color invert_color(enum color color);
-bool       decode_color(uint8_t bits, enum color *color);
-bool       decode_piece(uint8_t bits, enum piece *piece);
-uint8_t    encode_color(uint8_t bits, enum color color);
-uint8_t    encode_piece(uint8_t bits, enum piece piece);
+struct arena {
+        struct token tokens[ARENA_TOKENS_LENGTH];
+};
 
-int        obtain_piece_popcount(bitboard_t bitboard);
-int        forward_scan_bitboard(bitboard_t bitboard);
-int        reverse_scan_bitboard(bitboard_t bitboard);
-int        general_scan_bitboard(bitboard_t bitboard, bool reverse);
-bitboard_t flip_across_vert_line(bitboard_t bitboard);
-bitboard_t flip_across_horz_line(bitboard_t bitboard);
-bitboard_t flip_across_norm_diag(bitboard_t bitboard);
-bitboard_t flip_across_anti_diag(bitboard_t bitboard);
-bitboard_t general_flip_bitboard(bitboard_t bitboard, bool horz, bool vert);
-bitboard_t rotl_by_45dg_bitboard(bitboard_t bitboard);
-bitboard_t rotr_by_45dg_bitboard(bitboard_t bitboard);
-bitboard_t rotl_by_90dg_bitboard(bitboard_t bitboard);
-bitboard_t rotr_by_90dg_bitboard(bitboard_t bitboard);
-bitboard_t rot_by_180dg_bitboard(bitboard_t bitboard);
-bitboard_t obtain_color_bitboard(struct board board, enum color color);
-bitboard_t obtain_piece_bitboard(struct board board, enum piece piece);
+struct moves {
+        struct block blocks[MOVES_BLOCKS_LENGTH];
+        size_t       length;
+};
+
+enum color   invert_color(enum color color);
+
+bool assert_valid_color(enum color color);
+bool assert_valid_piece(enum piece piece);
+bool assert_valid_token(struct token token);
+bool assert_valid_file(enum file file);
+bool assert_valid_rank(enum rank rank);
+bool assert_valid_tier(enum tier tier);
+bool assert_valid_block(struct block block);
+bool assert_valid_moves(struct moves moves);
+
+struct token create_token(enum color color, enum piece piece);
+struct block create_block(enum file file, enum rank rank, enum tier tier);
+struct board create_board(void);
+struct arena create_arena(void);
+struct moves create_moves(void);
+
+size_t       obtain_block_index(struct block block);
+enum color   obtain_block_color(struct block block);
+struct token obtain_board_token(struct board board, struct block block);
+struct token obtain_arena_token(struct arena arena, struct block block);
+struct moves obtain_board_moves(struct board board, struct token token, struct block origin);
+struct moves obtain_arena_moves(struct arena arena, struct token token, struct block origin);
+
+struct token update_board_token(struct board *board, struct block block, struct token token);
+struct token update_arena_token(struct arena *arena, struct block block, struct token token);
+
+
