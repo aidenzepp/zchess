@@ -113,14 +113,12 @@ static struct moves obtain_board_moves_piece_king(struct board board, struct tok
                 moves.blocks[moves.length++] = block;
         }
 
-        if (token.moved)
-                return moves;
-
-        // Castling.
+        // Castling kingside.
         struct token kside_token = obtain_board_token(board, create_block(FILE_A, origin.rank, origin.tier));
         if (!token.moved && kside_token.piece == PIECE_ROOK && kside_token.color == token.color && !kside_token.moved)
                 moves.blocks[moves.length++] = create_block(FILE_B, origin.rank, origin.tier);
 
+        // Castling queenside.
         struct token qside_token = obtain_board_token(board, create_block(FILE_H, origin.rank, origin.tier));
         if (!token.moved && qside_token.piece == PIECE_ROOK && qside_token.color == token.color && !qside_token.moved)
                 moves.blocks[moves.length++] = create_block(FILE_G, origin.rank, origin.tier);
@@ -133,6 +131,18 @@ static struct moves obtain_board_moves_piece_queen(struct board board, struct to
         struct moves moves = create_moves();
         if (!assert_valid_block(origin) || token.piece != PIECE_QUEEN)
                 return moves;
+
+        struct moves rook_moves = obtain_board_moves_piece_rook(board, token, origin);
+        if (assert_valid_moves(rook_moves)) {
+                memcpy(moves.blocks + moves.length, rook_moves.blocks, rook_moves.length * sizeof(struct block));
+                moves.length += rook_moves.length;
+        }
+
+        struct moves bishop_moves = obtain_board_moves_piece_bishop(board, token, origin);
+        if (assert_valid_moves(bishop_moves)) {
+                memcpy(moves.blocks + moves.length, bishop_moves.blocks, bishop_moves.length * sizeof(struct block));
+                moves.length += bishop_moves.length;
+        }
 
         return moves;
 }
@@ -379,6 +389,9 @@ size_t obtain_block_index(struct block block)
 
 enum color obtain_block_color(struct block block)
 {
+        if (!assert_valid_block(block))
+                return COLOR_NONE;
+
         uint64_t black_blocks = 0xAA55AA55AA55AA55;
         if (block.tier % 2 != 0)
                 black_blocks = ~black_blocks;
@@ -394,6 +407,42 @@ struct token obtain_board_token(struct board board, struct block block)
 struct token obtain_arena_token(struct arena arena, struct block block)
 {
         return arena.tokens[obtain_block_index(block)];
+}
+
+struct board obtain_arena_board_axis_file(struct arena arena, enum file file)
+{
+        struct board board;
+
+        size_t index = 0;
+        for (enum tier tier = TIER_S; tier <= TIER_Z; tier++)
+        for (enum rank rank = RANK_1; rank <= RANK_8; rank++)
+                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+
+        return board;
+}
+
+struct board obtain_arena_board_axis_rank(struct arena arena, enum rank rank)
+{
+        struct board board;
+
+        size_t index = 0;
+        for (enum tier tier = TIER_S; tier <= TIER_Z; tier++)
+        for (enum file file = FILE_A; file <= FILE_H; file++)
+                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+
+        return board;
+}
+
+struct board obtain_arena_board_axis_tier(struct arena arena, enum tier tier)
+{
+        struct board board;
+
+        size_t index = 0;
+        for (enum rank rank = RANK_1; rank <= RANK_8; rank++)
+        for (enum file file = FILE_A; file <= FILE_H; file++)
+                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+
+        return board;
 }
 
 struct moves obtain_board_moves(struct board board, struct token token, struct block origin)

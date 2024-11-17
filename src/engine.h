@@ -82,7 +82,7 @@ struct moves {
         size_t       length;
 };
 
-enum color   invert_color(enum color color);
+enum color invert_color(enum color color);
 
 bool assert_valid_color(enum color color);
 bool assert_valid_piece(enum piece piece);
@@ -105,8 +105,9 @@ struct token obtain_board_token(struct board board, struct block block);
 struct token obtain_arena_token(struct arena arena, struct block block);
 struct moves obtain_board_moves(struct board board, struct token token, struct block origin);
 struct moves obtain_arena_moves(struct arena arena, struct token token, struct block origin);
+struct board obtain_arena_board_axis_file(struct arena arena, enum file file);
+struct board obtain_arena_board_axis_rank(struct arena arena, enum rank rank);
+struct board obtain_arena_board_axis_tier(struct arena arena, enum tier tier);
 
 struct token update_board_token(struct board *board, struct block block, struct token token);
 struct token update_arena_token(struct arena *arena, struct block block, struct token token);
-
-
