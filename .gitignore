@@ -1,0 +1,23 @@
+# Object files
+*.o
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build directory
+build/
+bin/
+
+# Debug files
+*.dSYM/
+
+# Dependencies
+*.d
+
+# Visual Studio
+.vscode
+
+# Specific executables
+zchess
