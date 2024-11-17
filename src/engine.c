@@ -90,220 +90,6 @@ static const struct token DEFAULT_ARENA_TOKENS[ARENA_TOKENS_LENGTH] = {
         [ARENA_BLOCK_INDEX(FILE_H, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_ROOK,   false},
 };
 
-static struct moves obtain_board_moves_piece_king(struct board board, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_KING)
-                return moves;
-
-        // TODO: In check?
-
-        // Normal moves.
-        for (size_t dr = -1; dr <= 1; dr++)
-        for (size_t df = -1; df <= 1; df++) {
-                if (dr == 0 && df == 0)
-                        continue;
-
-                struct block block = create_block(origin.file + df, origin.rank + dr, origin.tier);
-                if (!assert_valid_block(block))
-                        continue;
-
-                if (obtain_board_token(board, block).color != token.color)
-                        continue;
-
-                moves.blocks[moves.length++] = block;
-        }
-
-        // Castling kingside. TODO: Ray march.
-        struct token kside_token = obtain_board_token(board, create_block(FILE_A, origin.rank, origin.tier));
-        if (!token.moved && kside_token.piece == PIECE_ROOK && kside_token.color == token.color && !kside_token.moved)
-                moves.blocks[moves.length++] = create_block(FILE_B, origin.rank, origin.tier);
-
-        // Castling queenside. TODO: Ray march.
-        struct token qside_token = obtain_board_token(board, create_block(FILE_H, origin.rank, origin.tier));
-        if (!token.moved && qside_token.piece == PIECE_ROOK && qside_token.color == token.color && !qside_token.moved)
-                moves.blocks[moves.length++] = create_block(FILE_G, origin.rank, origin.tier);
-
-        return moves;       
-}
-
-static struct moves obtain_board_moves_piece_queen(struct board board, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_QUEEN)
-                return moves;
-
-        struct moves rook_moves = obtain_board_moves_piece_rook(board, token, origin);
-        if (assert_valid_moves(rook_moves)) {
-                memcpy(moves.blocks + moves.length, rook_moves.blocks, rook_moves.length * sizeof(struct block));
-                moves.length += rook_moves.length;
-        }
-
-        struct moves bishop_moves = obtain_board_moves_piece_bishop(board, token, origin);
-        if (assert_valid_moves(bishop_moves)) {
-                memcpy(moves.blocks + moves.length, bishop_moves.blocks, bishop_moves.length * sizeof(struct block));
-                moves.length += bishop_moves.length;
-        }
-
-        return moves;
-}
-
-static struct moves obtain_board_moves_piece_rook(struct board board, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_ROOK)
-                return moves;
-
-        const size_t dr[4] = {-1,  0,  1,  0};
-        const size_t df[4] = { 0,  1,  0, -1};
-        for (size_t d = 0; d < 4; d++)
-        for (size_t i = 1; i < BLOCK_COLUMN_LENGTH; i++) {
-                struct block block = create_block(origin.file + df[d] * i, origin.rank + dr[d] * i, origin.tier);
-                if (!assert_valid_block(block))
-                        break;
-
-                struct token other = obtain_board_token(board, block);
-                if (other.color != token.color)
-                        moves.blocks[moves.length++] = block;
-                if (other.piece != PIECE_NONE)
-                        break;
-        }
-
-        // TODO: Castling. (Is that even a rook move, or only a king move?)
-
-        return moves;
-}
-
-static struct moves obtain_board_moves_piece_bishop(struct board board, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_BISHOP)
-                return moves;
-
-        const size_t dr[4] = {-1, -1,  1,  1};
-        const size_t df[4] = {-1,  1,  1, -1};
-        for (size_t d = 0; d < 4; d++)
-        for (size_t i = 1; i < BLOCK_COLUMN_LENGTH; i++) {
-                struct block block = create_block(origin.file + df[d] * i, origin.rank + dr[d] * i, origin.tier);
-                if (!assert_valid_block(block))
-                        break;
-
-                struct token other = obtain_board_token(board, block);
-                if (other.color != token.color)
-                        moves.blocks[moves.length++] = block;
-                if (other.piece != PIECE_NONE)
-                        break;
-        }
-
-        return moves;
-}
-
-static struct moves obtain_board_moves_piece_knight(struct board board, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_KNIGHT)
-                return moves;
-
-        const size_t dr[8] = {-2, -1,  1,  2,  2,  1, -1, -2};
-        const size_t df[8] = { 1,  2,  2,  1, -1, -2, -2, -1};
-        for (size_t d = 0; d < 8; d++) {
-                struct block block = create_block(origin.file + df[d], origin.rank + dr[d], origin.tier);
-                if (!assert_valid_block(block))
-                        continue;
-
-                struct token other = obtain_board_token(board, block);
-                if (other.color != token.color)
-                        moves.blocks[moves.length++] = block;
-        }
-
-        return moves;
-}
-
-static struct moves obtain_board_moves_piece_pawn(struct board board, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_PAWN)
-                return moves;
-
-        struct token other = create_token(COLOR_NONE, PIECE_NONE);
-        struct block block = create_block(origin.file, origin.rank + 1, origin.tier);
-        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).piece == PIECE_NONE)
-                moves.blocks[moves.length++] = block;
-
-        block = create_block(origin.file - 1, origin.rank + 1, origin.tier);
-        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).color != token.color && other.piece != PIECE_NONE)
-                moves.blocks[moves.length++] = block;
-
-        block = create_block(origin.file + 1, origin.rank + 1, origin.tier);
-        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).color != token.color && other.piece != PIECE_NONE)
-                moves.blocks[moves.length++] = block;
-
-        // TODO: En passant.
-
-        // TODO: Promotion.
-
-        // Double.
-        block = create_block(origin.file, origin.rank + 2, origin.tier);
-        if (!token.moved && assert_valid_block(block) && (other = obtain_board_token(board, block)).piece == PIECE_NONE)
-                moves.blocks[moves.length++] = block;
-
-        return moves;
-}
-
-static struct moves obtain_arena_moves_piece_king(struct arena arena, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_KING)
-                return moves;
-
-        return moves;
-}
-
-static struct moves obtain_arena_moves_piece_queen(struct arena arena, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_QUEEN)
-                return moves;
-
-        return moves;
-}
-
-static struct moves obtain_arena_moves_piece_rook(struct arena arena, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_ROOK)
-                return moves;
-
-        return moves;
-}
-
-static struct moves obtain_arena_moves_piece_bishop(struct arena arena, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_BISHOP)
-                return moves;
-
-        return moves;
-}
-
-static struct moves obtain_arena_moves_piece_knight(struct arena arena, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_KNIGHT)
-                return moves;
-
-        return moves;
-}
-
-static struct moves obtain_arena_moves_piece_pawn(struct arena arena, struct token token, struct block origin)
-{
-        struct moves moves = create_moves();
-        if (!assert_valid_block(origin) || token.piece != PIECE_PAWN)
-                return moves;
-
-        return moves;
-}
-
 enum color invert_color(enum color color)
 {
         switch (color) {
@@ -473,7 +259,7 @@ struct moves create_moves(void)
 
 size_t obtain_block_index(struct block block)
 {
-        return BLOCK_INDEX(block.file, block.rank, block.tier);
+        return ARENA_BLOCK_INDEX(block.file, block.rank, block.tier);
 }
 
 enum color obtain_block_color(struct block block)
@@ -498,40 +284,218 @@ struct token obtain_arena_token(struct arena arena, struct block block)
         return arena.tokens[obtain_block_index(block)];
 }
 
-struct board obtain_arena_board_axis_file(struct arena arena, enum file file)
+struct moves obtain_board_moves_piece_king(struct board board, struct token token, struct block origin)
 {
-        struct board board;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KING)
+                return moves;
 
-        size_t index = 0;
-        for (enum tier tier = TIER_S; tier <= TIER_Z; tier++)
-        for (enum rank rank = RANK_1; rank <= RANK_8; rank++)
-                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+        // TODO: In check?
 
-        return board;
+        // Normal moves.
+        for (size_t dr = -1; dr <= 1; dr++)
+        for (size_t df = -1; df <= 1; df++) {
+                if (dr == 0 && df == 0)
+                        continue;
+
+                struct block block = create_block(origin.file + df, origin.rank + dr, origin.tier);
+                if (!assert_valid_block(block))
+                        continue;
+
+                if (obtain_board_token(board, block).color != token.color)
+                        continue;
+
+                moves.blocks[moves.length++] = block;
+        }
+
+        // Castling kingside. TODO: Ray march.
+        struct token kside_token = obtain_board_token(board, create_block(FILE_A, origin.rank, origin.tier));
+        if (!token.moved && kside_token.piece == PIECE_ROOK && kside_token.color == token.color && !kside_token.moved)
+                moves.blocks[moves.length++] = create_block(FILE_B, origin.rank, origin.tier);
+
+        // Castling queenside. TODO: Ray march.
+        struct token qside_token = obtain_board_token(board, create_block(FILE_H, origin.rank, origin.tier));
+        if (!token.moved && qside_token.piece == PIECE_ROOK && qside_token.color == token.color && !qside_token.moved)
+                moves.blocks[moves.length++] = create_block(FILE_G, origin.rank, origin.tier);
+
+        return moves;       
 }
 
-struct board obtain_arena_board_axis_rank(struct arena arena, enum rank rank)
+struct moves obtain_board_moves_piece_queen(struct board board, struct token token, struct block origin)
 {
-        struct board board;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_QUEEN)
+                return moves;
 
-        size_t index = 0;
-        for (enum tier tier = TIER_S; tier <= TIER_Z; tier++)
-        for (enum file file = FILE_A; file <= FILE_H; file++)
-                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+        struct moves rook_moves = obtain_board_moves_piece_rook(board, token, origin);
+        if (assert_valid_moves(rook_moves)) {
+                memcpy(moves.blocks + moves.length, rook_moves.blocks, rook_moves.length * sizeof(struct block));
+                moves.length += rook_moves.length;
+        }
 
-        return board;
+        struct moves bishop_moves = obtain_board_moves_piece_bishop(board, token, origin);
+        if (assert_valid_moves(bishop_moves)) {
+                memcpy(moves.blocks + moves.length, bishop_moves.blocks, bishop_moves.length * sizeof(struct block));
+                moves.length += bishop_moves.length;
+        }
+
+        return moves;
 }
 
-struct board obtain_arena_board_axis_tier(struct arena arena, enum tier tier)
+struct moves obtain_board_moves_piece_rook(struct board board, struct token token, struct block origin)
 {
-        struct board board;
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_ROOK)
+                return moves;
 
-        size_t index = 0;
-        for (enum rank rank = RANK_1; rank <= RANK_8; rank++)
-        for (enum file file = FILE_A; file <= FILE_H; file++)
-                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+        const size_t dr[4] = {-1,  0,  1,  0};
+        const size_t df[4] = { 0,  1,  0, -1};
+        for (size_t d = 0; d < 4; d++)
+        for (size_t i = 1; i < BLOCK_COLUMN_LENGTH; i++) {
+                struct block block = create_block(origin.file + df[d] * i, origin.rank + dr[d] * i, origin.tier);
+                if (!assert_valid_block(block))
+                        break;
 
-        return board;
+                struct token other = obtain_board_token(board, block);
+                if (other.color != token.color)
+                        moves.blocks[moves.length++] = block;
+                if (other.piece != PIECE_NONE)
+                        break;
+        }
+
+        // TODO: Castling. (Is that even a rook move, or only a king move?)
+
+        return moves;
+}
+
+struct moves obtain_board_moves_piece_bishop(struct board board, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_BISHOP)
+                return moves;
+
+        const size_t dr[4] = {-1, -1,  1,  1};
+        const size_t df[4] = {-1,  1,  1, -1};
+        for (size_t d = 0; d < 4; d++)
+        for (size_t i = 1; i < BLOCK_COLUMN_LENGTH; i++) {
+                struct block block = create_block(origin.file + df[d] * i, origin.rank + dr[d] * i, origin.tier);
+                if (!assert_valid_block(block))
+                        break;
+
+                struct token other = obtain_board_token(board, block);
+                if (other.color != token.color)
+                        moves.blocks[moves.length++] = block;
+                if (other.piece != PIECE_NONE)
+                        break;
+        }
+
+        return moves;
+}
+
+struct moves obtain_board_moves_piece_knight(struct board board, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KNIGHT)
+                return moves;
+
+        const size_t dr[8] = {-2, -1,  1,  2,  2,  1, -1, -2};
+        const size_t df[8] = { 1,  2,  2,  1, -1, -2, -2, -1};
+        for (size_t d = 0; d < 8; d++) {
+                struct block block = create_block(origin.file + df[d], origin.rank + dr[d], origin.tier);
+                if (!assert_valid_block(block))
+                        continue;
+
+                struct token other = obtain_board_token(board, block);
+                if (other.color != token.color)
+                        moves.blocks[moves.length++] = block;
+        }
+
+        return moves;
+}
+
+struct moves obtain_board_moves_piece_pawn(struct board board, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_PAWN)
+                return moves;
+
+        struct token other = create_token(COLOR_NONE, PIECE_NONE);
+        struct block block = create_block(origin.file, origin.rank + 1, origin.tier);
+        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).piece == PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        block = create_block(origin.file - 1, origin.rank + 1, origin.tier);
+        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).color != token.color && other.piece != PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        block = create_block(origin.file + 1, origin.rank + 1, origin.tier);
+        if (assert_valid_block(block) && (other = obtain_board_token(board, block)).color != token.color && other.piece != PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        // TODO: En passant.
+
+        // TODO: Promotion.
+
+        // Double.
+        block = create_block(origin.file, origin.rank + 2, origin.tier);
+        if (!token.moved && assert_valid_block(block) && (other = obtain_board_token(board, block)).piece == PIECE_NONE)
+                moves.blocks[moves.length++] = block;
+
+        return moves;
+}
+
+struct moves obtain_arena_moves_piece_king(struct arena arena, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KING)
+                return moves;
+
+        return moves;
+}
+
+struct moves obtain_arena_moves_piece_queen(struct arena arena, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_QUEEN)
+                return moves;
+
+        return moves;
+}
+
+struct moves obtain_arena_moves_piece_rook(struct arena arena, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_ROOK)
+                return moves;
+
+        return moves;
+}
+
+struct moves obtain_arena_moves_piece_bishop(struct arena arena, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_BISHOP)
+                return moves;
+
+        return moves;
+}
+
+struct moves obtain_arena_moves_piece_knight(struct arena arena, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_KNIGHT)
+                return moves;
+
+        return moves;
+}
+
+struct moves obtain_arena_moves_piece_pawn(struct arena arena, struct token token, struct block origin)
+{
+        struct moves moves = create_moves();
+        if (!assert_valid_block(origin) || token.piece != PIECE_PAWN)
+                return moves;
+
+        return moves;
 }
 
 struct moves obtain_board_moves(struct board board, struct token token, struct block origin)
@@ -592,6 +556,42 @@ struct moves obtain_arena_moves(struct arena arena, struct token token, struct b
         }
 
         return moves;
+}
+
+struct board obtain_arena_board_axis_file(struct arena arena, enum file file)
+{
+        struct board board;
+
+        size_t index = 0;
+        for (enum tier tier = TIER_S; tier <= TIER_Z; tier++)
+        for (enum rank rank = RANK_1; rank <= RANK_8; rank++)
+                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+
+        return board;
+}
+
+struct board obtain_arena_board_axis_rank(struct arena arena, enum rank rank)
+{
+        struct board board;
+
+        size_t index = 0;
+        for (enum tier tier = TIER_S; tier <= TIER_Z; tier++)
+        for (enum file file = FILE_A; file <= FILE_H; file++)
+                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+
+        return board;
+}
+
+struct board obtain_arena_board_axis_tier(struct arena arena, enum tier tier)
+{
+        struct board board;
+
+        size_t index = 0;
+        for (enum rank rank = RANK_1; rank <= RANK_8; rank++)
+        for (enum file file = FILE_A; file <= FILE_H; file++)
+                board.tokens[index++] = arena.tokens[obtain_block_index(create_block(file, rank, tier))];
+
+        return board;
 }
 
 struct token update_board_token(struct board *board, struct block block, struct token token)
