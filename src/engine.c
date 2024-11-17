@@ -3,90 +3,91 @@
 #include <stdint.h>
 #include <string.h>
 
-#define BLOCK_INDEX(file, rank, tier) (tier * 64 + rank * 8 + file)
+#define BOARD_BLOCK_INDEX(file, rank) (file + rank * 8)
+#define ARENA_BLOCK_INDEX(file, rank, tier) (BOARD_BLOCK_INDEX(file, rank) + tier * 64)
 
 static const struct token DEFAULT_BOARD_TOKENS[BOARD_TOKENS_LENGTH] = {
-        [BLOCK_INDEX(FILE_A, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
-        [BLOCK_INDEX(FILE_B, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_C, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_D, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_QUEEN,  false},
-        [BLOCK_INDEX(FILE_E, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KING,   false},
-        [BLOCK_INDEX(FILE_F, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_G, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_H, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
-        [BLOCK_INDEX(FILE_A, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_B, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_C, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_D, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_E, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_F, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_G, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_H, RANK_2, TIER_S)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_A, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_B, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_C, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_D, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_E, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_F, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_G, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_H, RANK_7, TIER_S)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_A, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_ROOK,   false},
-        [BLOCK_INDEX(FILE_B, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_C, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_D, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_QUEEN,  false},
-        [BLOCK_INDEX(FILE_E, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_KING,   false},
-        [BLOCK_INDEX(FILE_F, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_G, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_H, RANK_8, TIER_S)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [BOARD_BLOCK_INDEX(FILE_A, RANK_1)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [BOARD_BLOCK_INDEX(FILE_B, RANK_1)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [BOARD_BLOCK_INDEX(FILE_C, RANK_1)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [BOARD_BLOCK_INDEX(FILE_D, RANK_1)] = {COLOR_WHITE, PIECE_QUEEN,  false},
+        [BOARD_BLOCK_INDEX(FILE_E, RANK_1)] = {COLOR_WHITE, PIECE_KING,   false},
+        [BOARD_BLOCK_INDEX(FILE_F, RANK_1)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [BOARD_BLOCK_INDEX(FILE_G, RANK_1)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [BOARD_BLOCK_INDEX(FILE_H, RANK_1)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [BOARD_BLOCK_INDEX(FILE_A, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_B, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_C, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_D, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_E, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_F, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_G, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_H, RANK_2)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_A, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_B, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_C, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_D, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_E, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_F, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_G, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_H, RANK_7)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [BOARD_BLOCK_INDEX(FILE_A, RANK_8)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [BOARD_BLOCK_INDEX(FILE_B, RANK_8)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [BOARD_BLOCK_INDEX(FILE_C, RANK_8)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [BOARD_BLOCK_INDEX(FILE_D, RANK_8)] = {COLOR_BLACK, PIECE_QUEEN,  false},
+        [BOARD_BLOCK_INDEX(FILE_E, RANK_8)] = {COLOR_BLACK, PIECE_KING,   false},
+        [BOARD_BLOCK_INDEX(FILE_F, RANK_8)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [BOARD_BLOCK_INDEX(FILE_G, RANK_8)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [BOARD_BLOCK_INDEX(FILE_H, RANK_8)] = {COLOR_BLACK, PIECE_ROOK,   false},
 };
 
 static const struct token DEFAULT_ARENA_TOKENS[ARENA_TOKENS_LENGTH] = {
-        [BLOCK_INDEX(FILE_A, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
-        [BLOCK_INDEX(FILE_B, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_C, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_D, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_QUEEN,  false},
-        [BLOCK_INDEX(FILE_E, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KING,   false},
-        [BLOCK_INDEX(FILE_F, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_G, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_H, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
-        [BLOCK_INDEX(FILE_A, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_B, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_C, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_D, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_E, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_F, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_G, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_H, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_A, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_B, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_C, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_D, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_E, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_F, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_G, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_H, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_A, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_B, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_C, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_D, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_E, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_F, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_G, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_H, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_A, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_ROOK,   false},
-        [BLOCK_INDEX(FILE_B, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_E, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_F, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_G, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_H, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
-        [BLOCK_INDEX(FILE_A, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_ROOK,   false},
-        [BLOCK_INDEX(FILE_B, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_C, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_D, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_QUEEN,  false},
-        [BLOCK_INDEX(FILE_E, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KING,   false},
-        [BLOCK_INDEX(FILE_F, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_BISHOP, false},
-        [BLOCK_INDEX(FILE_G, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KNIGHT, false},
-        [BLOCK_INDEX(FILE_H, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [ARENA_BLOCK_INDEX(FILE_A, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [ARENA_BLOCK_INDEX(FILE_B, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [ARENA_BLOCK_INDEX(FILE_C, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [ARENA_BLOCK_INDEX(FILE_D, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_QUEEN,  false},
+        [ARENA_BLOCK_INDEX(FILE_E, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KING,   false},
+        [ARENA_BLOCK_INDEX(FILE_F, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_BISHOP, false},
+        [ARENA_BLOCK_INDEX(FILE_G, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_KNIGHT, false},
+        [ARENA_BLOCK_INDEX(FILE_H, RANK_1, TIER_S)] = {COLOR_WHITE, PIECE_ROOK,   false},
+        [ARENA_BLOCK_INDEX(FILE_A, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_B, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_C, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_D, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_E, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_F, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_G, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_H, RANK_1, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_A, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_B, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_C, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_D, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_E, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_F, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_G, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_H, RANK_2, TIER_T)] = {COLOR_WHITE, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_A, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_B, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_C, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_D, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_E, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_F, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_G, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_H, RANK_7, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_A, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [ARENA_BLOCK_INDEX(FILE_B, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [ARENA_BLOCK_INDEX(FILE_E, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_F, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_G, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_H, RANK_8, TIER_Y)] = {COLOR_BLACK, PIECE_PAWN,   false},
+        [ARENA_BLOCK_INDEX(FILE_A, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_ROOK,   false},
+        [ARENA_BLOCK_INDEX(FILE_B, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [ARENA_BLOCK_INDEX(FILE_C, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [ARENA_BLOCK_INDEX(FILE_D, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_QUEEN,  false},
+        [ARENA_BLOCK_INDEX(FILE_E, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KING,   false},
+        [ARENA_BLOCK_INDEX(FILE_F, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_BISHOP, false},
+        [ARENA_BLOCK_INDEX(FILE_G, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_KNIGHT, false},
+        [ARENA_BLOCK_INDEX(FILE_H, RANK_8, TIER_Z)] = {COLOR_BLACK, PIECE_ROOK,   false},
 };
 
 static struct moves obtain_board_moves_piece_king(struct board board, struct token token, struct block origin)
@@ -113,12 +114,12 @@ static struct moves obtain_board_moves_piece_king(struct board board, struct tok
                 moves.blocks[moves.length++] = block;
         }
 
-        // Castling kingside.
+        // Castling kingside. TODO: Ray march.
         struct token kside_token = obtain_board_token(board, create_block(FILE_A, origin.rank, origin.tier));
         if (!token.moved && kside_token.piece == PIECE_ROOK && kside_token.color == token.color && !kside_token.moved)
                 moves.blocks[moves.length++] = create_block(FILE_B, origin.rank, origin.tier);
 
-        // Castling queenside.
+        // Castling queenside. TODO: Ray march.
         struct token qside_token = obtain_board_token(board, create_block(FILE_H, origin.rank, origin.tier));
         if (!token.moved && qside_token.piece == PIECE_ROOK && qside_token.color == token.color && !qside_token.moved)
                 moves.blocks[moves.length++] = create_block(FILE_G, origin.rank, origin.tier);
@@ -303,6 +304,102 @@ static struct moves obtain_arena_moves_piece_pawn(struct arena arena, struct tok
         return moves;
 }
 
+enum color invert_color(enum color color)
+{
+        switch (color) {
+        case COLOR_WHITE:
+                return COLOR_BLACK;
+        case COLOR_BLACK:
+                return COLOR_WHITE;
+        default:
+                return COLOR_NONE;
+        }
+}
+
+const char *color_letter(enum color color)
+{
+        switch (color) {
+        case COLOR_WHITE:
+                return "w";
+        case COLOR_BLACK:
+                return "b";
+        default:
+                return ".";
+        }
+}
+
+const char *color_string(enum color color)
+{
+        switch (color) {
+        case COLOR_WHITE:
+                return "white";
+        case COLOR_BLACK:
+                return "black";
+        default:
+                return "empty";
+        }
+}
+
+const char *token_letter(struct token token)
+{
+        switch (token.piece) {
+        case PIECE_KING:
+                return token.color == COLOR_WHITE ? "K" : "k";
+        case PIECE_QUEEN:
+                return token.color == COLOR_WHITE ? "Q" : "q";
+        case PIECE_ROOK:
+                return token.color == COLOR_WHITE ? "R" : "r";
+        case PIECE_BISHOP:
+                return token.color == COLOR_WHITE ? "B" : "b";
+        case PIECE_KNIGHT:
+                return token.color == COLOR_WHITE ? "N" : "n";
+        case PIECE_PAWN:
+                return token.color == COLOR_WHITE ? "P" : "p";
+        default:
+                return ".";
+        }
+}
+
+const char *token_string(struct token token)
+{
+        switch (token.piece) {
+        case PIECE_KING:
+                return token.color == COLOR_WHITE ? "white king" : "black king";
+        case PIECE_QUEEN:
+                return token.color == COLOR_WHITE ? "white queen" : "black queen";
+        case PIECE_ROOK:
+                return token.color == COLOR_WHITE ? "white rook" : "black rook";
+        case PIECE_BISHOP:
+                return token.color == COLOR_WHITE ? "white bishop" : "black bishop";
+        case PIECE_KNIGHT:
+                return token.color == COLOR_WHITE ? "white knight" : "black knight";
+        case PIECE_PAWN:
+                return token.color == COLOR_WHITE ? "white pawn" : "black pawn";
+        default:
+                return "empty";
+        }
+}
+
+const char *token_symbol(struct token token)
+{
+        switch (token.piece) {
+        case PIECE_KING:
+                return token.color == COLOR_WHITE ? "♔" : "♚";
+        case PIECE_QUEEN:
+                return token.color == COLOR_WHITE ? "♕" : "♛";
+        case PIECE_ROOK:
+                return token.color == COLOR_WHITE ? "♖" : "♜";
+        case PIECE_BISHOP:
+                return token.color == COLOR_WHITE ? "♗" : "♝";
+        case PIECE_KNIGHT:
+                return token.color == COLOR_WHITE ? "♘" : "♞";
+        case PIECE_PAWN:
+                return token.color == COLOR_WHITE ? "♙" : "♟︎";
+        default:
+                return " ";
+        }
+}
+
 bool assert_valid_color(enum color color)
 {
         return COLOR_NONE <= color && color <= COLOR_BLACK;
@@ -341,14 +438,6 @@ bool assert_valid_block(struct block block)
 bool assert_valid_moves(struct moves moves)
 {
         return 0 <= moves.length && moves.length <= MOVES_BLOCKS_LENGTH;
-}
-
-enum color invert_color(enum color color)
-{
-        if (color == COLOR_NONE)
-                return COLOR_NONE;
-
-        return color == COLOR_WHITE ? COLOR_BLACK : COLOR_WHITE;
 }
 
 struct token create_token(enum color color, enum piece piece)
@@ -396,7 +485,7 @@ enum color obtain_block_color(struct block block)
         if (block.tier % 2 != 0)
                 black_blocks = ~black_blocks;
 
-        return ((black_blocks >> BLOCK_INDEX(block.file, block.rank, TIER_S)) & 1) == 0 ? COLOR_WHITE : COLOR_BLACK;
+        return ((black_blocks >> BOARD_BLOCK_INDEX(block.file, block.rank)) & 1) == 0 ? COLOR_WHITE : COLOR_BLACK;
 }
 
 struct token obtain_board_token(struct board board, struct block block)
