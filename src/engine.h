@@ -4,9 +4,8 @@
 #include <stdbool.h>
 
 #define BLOCK_COLUMN_LENGTH 8
-#define BOARD_TOKENS_LENGTH 64
 #define ARENA_TOKENS_LENGTH 512
-#define MOVES_BLOCKS_LENGTH 128
+#define MOVES_BLOCKS_LENGTH 256
 
 enum color {
         COLOR_NONE,
@@ -69,64 +68,15 @@ struct block {
         enum tier tier;
 };
 
-struct board {
-        struct token tokens[BOARD_TOKENS_LENGTH];
+struct moves {
+        struct block blocks[MOVES_BLOCKS_LENGTH];
+        size_t       length;
 };
 
 struct arena {
         struct token tokens[ARENA_TOKENS_LENGTH];
 };
 
-struct moves {
-        struct block blocks[MOVES_BLOCKS_LENGTH];
-        size_t       length;
-};
-
-enum color  invert_color(enum color color);
-const char *color_letter(enum color color);
-const char *color_string(enum color color);
-const char *token_letter(struct token token);
-const char *token_string(struct token token);
-const char *token_symbol(struct token token);
-
-bool assert_valid_color(enum color color);
-bool assert_valid_piece(enum piece piece);
-bool assert_valid_token(struct token token);
-bool assert_valid_file(enum file file);
-bool assert_valid_rank(enum rank rank);
-bool assert_valid_tier(enum tier tier);
-bool assert_valid_block(struct block block);
-bool assert_valid_moves(struct moves moves);
-
-struct token create_token(enum color color, enum piece piece);
-struct block create_block(enum file file, enum rank rank, enum tier tier);
-struct board create_board(void);
 struct arena create_arena(void);
-struct moves create_moves(void);
-
-size_t       obtain_block_index(struct block block);
-enum color   obtain_block_color(struct block block);
-struct token obtain_board_token(struct board board, struct block block);
-struct token obtain_arena_token(struct arena arena, struct block block);
-struct moves obtain_board_moves_piece_king(struct board board, struct token token, struct block origin);
-struct moves obtain_board_moves_piece_queen(struct board board, struct token token, struct block origin);
-struct moves obtain_board_moves_piece_rook(struct board board, struct token token, struct block origin);
-struct moves obtain_board_moves_piece_bishop(struct board board, struct token token, struct block origin);
-struct moves obtain_board_moves_piece_knight(struct board board, struct token token, struct block origin);
-struct moves obtain_board_moves_piece_pawn(struct board board, struct token token, struct block origin);
-struct moves obtain_arena_moves_piece_king(struct arena arena, struct token token, struct block origin);
-struct moves obtain_arena_moves_piece_queen(struct arena arena, struct token token, struct block origin);
-struct moves obtain_arena_moves_piece_rook(struct arena arena, struct token token, struct block origin);
-struct moves obtain_arena_moves_piece_bishop(struct arena arena, struct token token, struct block origin);
-struct moves obtain_arena_moves_piece_knight(struct arena arena, struct token token, struct block origin);
-struct moves obtain_arena_moves_piece_pawn(struct arena arena, struct token token, struct block origin);
-struct moves obtain_arena_moves(struct arena arena, struct token token, struct block origin);
-struct moves obtain_board_moves(struct board board, struct token token, struct block origin);
-struct moves obtain_arena_moves(struct arena arena, struct token token, struct block origin);
-struct board obtain_arena_board_axis_file(struct arena arena, enum file file);
-struct board obtain_arena_board_axis_rank(struct arena arena, enum rank rank);
-struct board obtain_arena_board_axis_tier(struct arena arena, enum tier tier);
-
-struct token update_board_token(struct board *board, struct block block, struct token token);
-struct token update_arena_token(struct arena *arena, struct block block, struct token token);
-
+struct moves obtain_arena_moves(struct arena arena, enum file file, enum rank rank, enum tier tier);
+struct token obtain_arena_token(struct arena arena, enum file file, enum rank rank, enum tier tier);
