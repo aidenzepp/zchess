@@ -2,3 +2,6 @@
 
 # Local toolchain
 .tools/
+
+# Scratch packages and probes
+work/
