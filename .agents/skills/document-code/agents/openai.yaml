@@ -1,0 +1,4 @@
+interface:
+  display_name: "Document Code"
+  short_description: "Preserve consequential knowledge in Faber doc comments"
+  default_prompt: "Use $document-code to document or review Faber program units in this repository. Write contiguous `#` doc comments above each declaration and its annotations, document what the signature cannot prove, keep member meanings on their owning type, preserve consequential learned constraints as present-tense causal explanations for a first-time reader, cite useful local and authoritative sources, and confirm the result with `faber doc`."
