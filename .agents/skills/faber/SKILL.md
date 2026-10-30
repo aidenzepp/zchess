@@ -25,16 +25,17 @@ Faber also publishes agent skills at https://faberlang.dev/.well-known/agent-ski
 - `faber --version` reports the installed release. Match the documentation to it.
 - `faber check .` lexes, parses, and type-checks the package. `faber run .` interprets it. `faber test .` runs `describe` / `test` suites. `faber format .` reports drift; `--write` applies it.
 - `faber doc .` renders exported declarations with the `#` comment lines directly above them.
-- Prove a snippet by putting it in a scratch package (`faber init work/<name>`) and running `faber check` on it. Delete the scratch package afterward.
+- Prove a snippet by putting it in a scratch package (`faber init work/<name>`) and running `faber check` on it. Delete the scratch package afterward. Pass the scratch package directory, not a loose `.fab` file: a single file inside this repository resolves to the repository's `faber.toml`, and `faber build` then compiles into this repository.
 - `faber check .` analyzes only files reachable from the entry. A file nothing imports can hold type errors and still pass; check it by path (`faber check src/<file>.fab`). `*.proba` test files are analyzed only by `faber test`.
 
 ## Known tool gaps in 1.17.0
 
-Each was reproduced locally. Recheck after upgrading.
+Each was reproduced locally and filed upstream. Recheck after upgrading, and drop an entry once its issue is closed.
 
-- `faber format --write` deletes `#` comments on union variants, enum members, and interface methods, although `faber doc` renders them. Document members in the comment on the type itself.
-- `faber format` refuses any file that imports a Norma module (`norma:text`, `norma:json`, …) with `PKG001 unknown_library_module` and writes nothing, while `check` and `run` accept it.
-- A `class` used as a `map` or `set` key passes `faber check`, then fails at run time with `value is not a valid map/set key`. Key by `string`, an integer, or a ranged integer type.
+- `faber format --write` deletes `#` comments on union variants, enum members, `@ shared` union fields, and interface methods, although `faber doc` renders them. Document members in the comment on the type itself. [faberlang/faber#1](https://github.com/faberlang/faber/issues/1)
+- `faber format` refuses any file that imports a Norma module (`norma:text`, `norma:json`, …) with `PKG001 unknown_library_module` and writes nothing, while `check` and `run` accept it. [faberlang/faber#2](https://github.com/faberlang/faber/issues/2)
+- A `class` used as a `map` or `set` key passes `faber check`, then fails at run time with `value is not a valid map/set key`. Key by `string`, an integer, or a ranged integer type. [faberlang/faber#3](https://github.com/faberlang/faber/issues/3)
+- The corpus pages for the `repeat`, `expect_failure`, and `flaky` test modifiers describe behavior `faber test` does not have; the runner is the contract. [faberlang/faber#4](https://github.com/faberlang/faber/issues/4), [#5](https://github.com/faberlang/faber/issues/5), [#6](https://github.com/faberlang/faber/issues/6)
 
 ## Verify before trusting
 
